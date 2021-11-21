@@ -1,0 +1,8 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Exec=bash -c "[ ! -z $(findmnt / -no options | grep -E '.snapshots') ] && btrfs-assistant snapshot"
+Icon=timeshift
+Name=BTRFS Assistant Snapper check
+Type=Application
+X-GNOME-Autostart-enabled=true
+X-KDE-autostart-after=panel

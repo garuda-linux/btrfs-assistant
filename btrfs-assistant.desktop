@@ -1,0 +1,12 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=BTRFS Assistant
+Name[de]=BTRFS Assistant
+Comment=Change system settings
+Comment[de]=Systemeinstellungen einfach verändern
+Exec=pkexec btrfs-assistant
+Terminal=false
+Type=Application
+Icon=btrfs-assistant
+Categories=GNOME;GTK;System;Garuda-Setup;
+NoDisplay=false
