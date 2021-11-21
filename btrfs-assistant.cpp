@@ -2,11 +2,15 @@
 #include "config.h"
 #include "ui_btrfs-assistant.h"
 
-BtrfsAssistant::BtrfsAssistant(QWidget *parent) : QMainWindow(parent), ui(new Ui::BtrfsAssistant) { ui->setupUi(this); }
-
-BtrfsAssistant::~BtrfsAssistant() {
-    delete ui;
+BtrfsAssistant::BtrfsAssistant(QWidget *parent) : QMainWindow(parent), ui(new Ui::BtrfsAssistant) {
+    if (runCmd("id -u", false).output != "0") {
+        displayError(tr("The application must be run as the superuser(root)"));
+        exit(1);
+    }
+    ui->setupUi(this);
 }
+
+BtrfsAssistant::~BtrfsAssistant() { delete ui; }
 
 // Util function for getting bash command output and error code
 Result BtrfsAssistant::runCmd(QString cmd, bool includeStderr, int timeout) {
@@ -35,8 +39,6 @@ Result BtrfsAssistant::runCmd(QStringList cmdList, bool includeStderr, int timeo
     // Run the composite command as a single command
     return runCmd(fullCommand, includeStderr, timeout);
 }
-
-
 
 // setup versious items first time program runs
 bool BtrfsAssistant::setup() {
@@ -1117,5 +1119,3 @@ void BtrfsAssistant::loadSnapperRestoreMode() {
     for (const QString &key : snapperKeys)
         ui->comboBox_snapper_configs->addItem(key);
 }
-
-
