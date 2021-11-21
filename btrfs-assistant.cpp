@@ -410,26 +410,19 @@ void BtrfsAssistant::restoreSnapshot(QString uuid, QString subvolume) {
     // Now we need to find out what the target for the restore is
     QString prefix = subvolume.split(".snapshots").at(0);
 
+    QString targetSubvolume;
     // If the prefix is empty, that means that we are trying to restore the subvolume mounted as /
-    // It also means the subvolume is currently mounted so we can't restore it
     if (prefix.isEmpty()) {
-        displayError(tr("Can't restore snapshot while the target subvolume is mounted") + "\n\n" +
-                     tr("Unmount the volume, reboot off a snapshot or use this tool from a live ISO to complete the restore"));
-        return;
+        targetSubvolume = "/";
+    } else {
+        // Strip the trailing /
+        targetSubvolume = prefix.left(prefix.length() - 1);
     }
-
-    // Strip the trailing /
-    QString targetSubvolume = prefix.left(prefix.length() - 1);
 
     // Get the subvolid of the target and do some additional error checking
     QString targetSubvolid = fsMap[uuid].subVolumes.key(targetSubvolume);
     if (targetSubvolid.isEmpty()) {
         displayError(tr("Target not found"));
-        return;
-    }
-
-    if (isMounted(uuid, targetSubvolid)) {
-        displayError(tr("Can't restore snapshot while the target subvolume is mounted"));
         return;
     }
 
