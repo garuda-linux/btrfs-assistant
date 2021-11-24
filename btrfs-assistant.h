@@ -80,6 +80,7 @@ class BtrfsAssistant : public QMainWindow {
     Result runCmd(QStringList cmdList, bool includeStderr, int timeout = 60);
     QStringList getBTRFSFilesystems();
     QString findMountpoint(QString uuid);
+    QString findRootSubvol();
     void loadBTRFS();
     void populateBtrfsUi(QString uuid);
     QString toHumanReadable(double number);

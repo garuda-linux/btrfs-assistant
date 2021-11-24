@@ -116,6 +116,34 @@ QStringList BtrfsAssistant::getBTRFSFilesystems() {
 // Returns one of the mountpoints for a given UUID
 QString BtrfsAssistant::findMountpoint(QString uuid) {
     return runCmd("findmnt --real -rno target,uuid | grep " + uuid + " | head -n 1 | awk '{print $1}'", false).output;
+
+}
+
+// Finds the subvol mounted at /
+// Returns a subvolume name or a default constructed QString if one if not found
+QString BtrfsAssistant::findRootSubvol() {
+    const QString output = runCmd("LANG=C findmnt -no uuid,options /", false).output;
+    if (output.isEmpty())
+        return QString();
+
+    const QString uuid = output.split(' ').at(0).trimmed();
+    const QString options = output.right(output.length() - uuid.length()).trimmed();
+    if (options.isEmpty() || uuid.isEmpty())
+        return QString();
+
+    QString subvol;
+    const QStringList optionsList = options.split(',');
+    for (const QString &option : optionsList) {
+        if (option.startsWith("subvol="))
+            subvol = option.split("subvol=").at(1);
+    }
+
+    // Make sure subvolume doesn't have a leading slash
+    if (subvol.startsWith("/"))
+        subvol = subvol.right(subvol.length() - 1);
+
+    // At this point subvol will either contain nothing or the name of the subvol
+    return subvol;
 }
 
 // Populates the btrfs fs structure
@@ -413,7 +441,7 @@ void BtrfsAssistant::restoreSnapshot(QString uuid, QString subvolume) {
     QString targetSubvolume;
     // If the prefix is empty, that means that we are trying to restore the subvolume mounted as /
     if (prefix.isEmpty()) {
-        targetSubvolume = "/";
+        targetSubvolume = findRootSubvol();
     } else {
         // Strip the trailing /
         targetSubvolume = prefix.left(prefix.length() - 1);
@@ -453,7 +481,12 @@ void BtrfsAssistant::restoreSnapshot(QString uuid, QString subvolume) {
     }
 
     // We moved the snapshot so we need to change the location
-    QString newSubvolume = targetBackup + subvolume.right(subvolume.length() - targetSubvolume.length());
+    QString newSubvolume;
+    if (subvolume.startsWith(targetSubvolume))
+        newSubvolume = targetBackup + subvolume.right(subvolume.length() - targetSubvolume.length());
+    else
+        newSubvolume = targetBackup + "/" + subvolume;
+
 
     // Place a snapshot of the source where the target was
     runCmd("btrfs subvolume snapshot " + mountpoint + newSubvolume + " " + mountpoint + targetSubvolume, false);
