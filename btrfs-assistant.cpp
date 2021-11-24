@@ -13,7 +13,7 @@ BtrfsAssistant::BtrfsAssistant(QWidget *parent) : QMainWindow(parent), ui(new Ui
 BtrfsAssistant::~BtrfsAssistant() { delete ui; }
 
 // Util function for getting bash command output and error code
-Result BtrfsAssistant::runCmd(QString cmd, bool includeStderr, int timeout) {
+Result BtrfsAssistant::runCmd(QString cmd, bool includeStderr, int timeout) const {
     QProcess proc;
 
     if (includeStderr)
@@ -27,7 +27,7 @@ Result BtrfsAssistant::runCmd(QString cmd, bool includeStderr, int timeout) {
 
 // Util function for getting bash command output and error code
 // This version takes a list so multiple commands can be executed at once
-Result BtrfsAssistant::runCmd(QStringList cmdList, bool includeStderr, int timeout) {
+Result BtrfsAssistant::runCmd(QStringList cmdList, bool includeStderr, int timeout) const {
     QString fullCommand;
     for (const QString &command : qAsConst(cmdList)) {
         if (fullCommand == "")
@@ -116,12 +116,30 @@ QStringList BtrfsAssistant::getBTRFSFilesystems() {
 // Returns one of the mountpoints for a given UUID
 QString BtrfsAssistant::findMountpoint(QString uuid) {
     return runCmd("findmnt --real -rno target,uuid | grep " + uuid + " | head -n 1 | awk '{print $1}'", false).output;
+}
 
+// Finds the direct children of a given subvolid
+QStringList BtrfsAssistant::findBtrfsChildren(const QString subvolid, const QString uuid) const {
+    QString output = runCmd("sudo btrfs subvolume list / | awk '{print $7, $9}' | grep " + subvolid, false).output;
+    if (output.isEmpty())
+        return QStringList();
+
+    QStringList subvols;
+    const QStringList outputList = output.split('\n');
+    for (const QString &subvolEntry : outputList) {
+        if (subvolEntry.isEmpty())
+            continue;
+
+        if (subvolEntry.split(' ').at(0).trimmed() == subvolid )
+            subvols.append(subvolEntry.split(' ').at(1).trimmed());
+    }
+
+    return subvols;
 }
 
 // Finds the subvol mounted at /
 // Returns a subvolume name or a default constructed QString if one if not found
-QString BtrfsAssistant::findRootSubvol() {
+QString BtrfsAssistant::findRootSubvol() const {
     const QString output = runCmd("LANG=C findmnt -no uuid,options /", false).output;
     if (output.isEmpty())
         return QString();
@@ -472,6 +490,9 @@ void BtrfsAssistant::restoreSnapshot(QString uuid, QString subvolume) {
 
     QDir dirWorker;
 
+    // Find the children before we start
+    const QStringList subvols = findBtrfsChildren(targetSubvolid, uuid);
+
     // Rename the target
     runCmd("mv " + mountpoint + targetSubvolume + " " + mountpoint + targetBackup, false);
 
@@ -499,20 +520,29 @@ void BtrfsAssistant::restoreSnapshot(QString uuid, QString subvolume) {
         return;
     }
 
-    // The restore was successful, now we need to move the snapshots into the target
-    runCmd("mv " + mountpoint + targetBackup + "/.snapshots" + " " + mountpoint + targetSubvolume + "/.", false);
-
-    if (!dirWorker.exists(mountpoint + targetSubvolume + "/.snapshots")) {
-        // If this fails, not much can be done except let the user know
-        displayError(tr("The restore was successful but the migration of the snapshots failed") + "\n\n" +
-                     tr("Please migrate the .snapshots subvolume manually"));
-        return;
+    // The restore was successful, now we need to move any child subvolumes into the target
+    QString childSubvolPath;
+    for (const QString &childSubvol : subvols) {
+        if (childSubvol.startsWith(targetSubvolume)) {
+            // Strip the old subvolname
+            childSubvolPath = childSubvol.right(childSubvol.length() - (targetSubvolume.length() + 1));
+        } else {
+            childSubvolPath = childSubvol;
+        }
+        runCmd("mv " + mountpoint + targetBackup + "/" + childSubvolPath + " " + mountpoint + targetSubvolume + "/.", false);
+        if (!dirWorker.exists(mountpoint + targetSubvolume + "/" + childSubvolPath)) {
+            // If this fails, not much can be done except let the user know
+            displayError(tr("The restore was successful but the migration of the nested subvolumes failed") + "\n\n" +
+                         tr("Please migrate the those subvolumes manually"));
+            return;
+        }
     }
+
 
     // If we get here I guess it worked
     QMessageBox::information(0, tr("Snapshot Restore"),
                              tr("Snapshot restoration complete.") + "\n\n" + tr("A copy of the original subvolume has been saved as ") +
-                                 targetBackup + "\n\n" + tr("Please verify before rebooting"));
+                                 targetBackup + "\n\n" + tr("Please reboot immediately"));
 }
 
 bool BtrfsAssistant::isMounted(QString uuid, QString subvolid) {

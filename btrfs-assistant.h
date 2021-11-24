@@ -76,11 +76,12 @@ class BtrfsAssistant : public QMainWindow {
     bool isInstalled(QString packageName);
     void setupConfigBoxes();
     void apply();
-    Result runCmd(QString cmd, bool includeStderr, int timeout = 60);
-    Result runCmd(QStringList cmdList, bool includeStderr, int timeout = 60);
+    Result runCmd(QString cmd, bool includeStderr, int timeout = 60) const;
+    Result runCmd(QStringList cmdList, bool includeStderr, int timeout = 60) const;
     QStringList getBTRFSFilesystems();
     QString findMountpoint(QString uuid);
-    QString findRootSubvol();
+    QString findRootSubvol() const;
+    QStringList findBtrfsChildren(const QString subvolid, const QString uuid) const;
     void loadBTRFS();
     void populateBtrfsUi(QString uuid);
     QString toHumanReadable(double number);
