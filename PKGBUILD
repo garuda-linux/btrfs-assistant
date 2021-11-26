@@ -25,5 +25,6 @@ package() {
 	make -C build DESTDIR="$pkgdir" install
 
 	cd "$srcdir/$pkgname-$pkgver"
-	install -Dm0644 snapper-check.desktop $pkgdir/etc/xdg/autostart/snapper-check.desktop
+	install -Dm0644 snapper-snap-check.desktop $pkgdir/etc/xdg/autostart/snapper-snap-check.desktop
+	install -Dm0644 org.garuda.btrfs-assistant.pkexec.policy $pkgdir/usr/share/polkit-1/actions/org.garuda.btrfs-assistant.pkexec.policy
 }
