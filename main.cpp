@@ -9,7 +9,6 @@ int main(int argc, char *argv[]) {
     myappTranslator.load("btrfsassistant_" + QLocale::system().name(), "/usr/share/btrfs-assistant/translations");
     a.installTranslator(&myappTranslator);
     BtrfsAssistant w;
-    w.move(QApplication::desktop()->screen()->rect().center() - w.rect().center());
     if (!w.setup())
         return 0;
     w.show();
