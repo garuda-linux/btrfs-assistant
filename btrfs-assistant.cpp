@@ -47,7 +47,7 @@ bool BtrfsAssistant::setup() {
     bool restoreSnapshot = handleSnapshotBoot(true, false);
 
     // Save the state of snapper being installed since we have to check it so often
-    hasSnapper = isInstalled("snapper");
+    hasSnapper = runCmd("which snapper", false).output.endsWith("snapper");
 
     ui->groupBox_snapper_config_edit->hide();
 
@@ -88,9 +88,6 @@ void BtrfsAssistant::loadEnabledUnits() {
     return;
 }
 
-// Returns true if packageName is installed and false if not
-bool BtrfsAssistant::isInstalled(QString packageName) { return runCmd("pacman -Qq " + packageName, false).output == packageName; }
-
 // Updates the checkboxes and comboboxes with values from the system
 void BtrfsAssistant::refreshInterface() {
     loadEnabledUnits();
@@ -130,7 +127,7 @@ QStringList BtrfsAssistant::findBtrfsChildren(const QString subvolid, const QStr
         if (subvolEntry.isEmpty())
             continue;
 
-        if (subvolEntry.split(' ').at(0).trimmed() == subvolid )
+        if (subvolEntry.split(' ').at(0).trimmed() == subvolid)
             subvols.append(subvolEntry.split(' ').at(1).trimmed());
     }
 
@@ -355,7 +352,7 @@ void BtrfsAssistant::on_pushButton_deletesubvol_clicked() {
     Result result;
 
     // First let's see if this is a timeshift snapshot, if it is, we need to use timeshift to remove it
-    if (isTimeshift(subvol) && isInstalled("timeshift")) {
+    if (isTimeshift(subvol) && runCmd("which snapper", false).output.endsWith("snapper")) {
         QString snapshot = subvol.split('/').at(2);
         // Let's het confirmation first
         if (QMessageBox::question(0, tr("Please Confirm"),
@@ -508,7 +505,6 @@ void BtrfsAssistant::restoreSnapshot(QString uuid, QString subvolume) {
     else
         newSubvolume = targetBackup + "/" + subvolume;
 
-
     // Place a snapshot of the source where the target was
     runCmd("btrfs subvolume snapshot " + mountpoint + newSubvolume + " " + mountpoint + targetSubvolume, false);
 
@@ -537,7 +533,6 @@ void BtrfsAssistant::restoreSnapshot(QString uuid, QString subvolume) {
             return;
         }
     }
-
 
     // If we get here I guess it worked
     QMessageBox::information(0, tr("Snapshot Restore"),

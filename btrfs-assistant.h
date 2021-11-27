@@ -73,7 +73,6 @@ class BtrfsAssistant : public QMainWindow {
     void refreshInterface();
     void displayError(QString errorText);
     void loadEnabledUnits();
-    bool isInstalled(QString packageName);
     void setupConfigBoxes();
     void apply();
     Result runCmd(QString cmd, bool includeStderr, int timeout = 60) const;
