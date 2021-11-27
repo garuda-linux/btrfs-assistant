@@ -414,9 +414,10 @@ void BtrfsAssistant::on_comboBox_btrfsdevice_activated() {
 }
 
 void BtrfsAssistant::on_pushButton_balance_clicked() {
-    this->hide();
-    runCmd("btrfs-balance.service", false);
-    this->show();
+    runCmd("systemctl start btrfs-balance.service", false);
+    QMessageBox::information(0, tr("BTRFS Balance"),
+                             tr("The balance operation is running in the background") + "\n\n" +
+                                 tr("Use 'systemctl status btrfs-balance.service' to check the status"));
 }
 
 void BtrfsAssistant::on_checkBox_show_subvolume_clicked(bool checked) {
