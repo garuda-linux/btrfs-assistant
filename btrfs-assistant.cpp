@@ -3,10 +3,6 @@
 #include "ui_btrfs-assistant.h"
 
 BtrfsAssistant::BtrfsAssistant(QWidget *parent) : QMainWindow(parent), ui(new Ui::BtrfsAssistant) {
-    if (runCmd("id -u", false).output != "0") {
-        displayError(tr("The application must be run as the superuser(root)"));
-        exit(1);
-    }
     ui->setupUi(this);
 }
 
@@ -40,11 +36,19 @@ Result BtrfsAssistant::runCmd(QStringList cmdList, bool includeStderr, int timeo
     return runCmd(fullCommand, includeStderr, timeout);
 }
 
-// setup versious items first time program runs
+// setup various items first time program runs
 bool BtrfsAssistant::setup() {
     this->setWindowTitle(tr("BTRFS Assistant"));
 
     bool restoreSnapshot = handleSnapshotBoot(true, false);
+
+    if (qEnvironmentVariableIsSet("SNAPSHOT_BOOT") && !restoreSnapshot)
+        return false;
+    if (runCmd("id -u", false).output != "0") {
+        execlp("pkexec", "pkexec", "btrfs-assistant", "-style", "kvantum", NULL);
+        QApplication::exit(1);
+        return false;
+    }
 
     // Save the state of snapper being installed since we have to check it so often
     hasSnapper = runCmd("which snapper", false).output.endsWith("snapper");
