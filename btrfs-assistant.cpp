@@ -60,6 +60,7 @@ bool BtrfsAssistant::setup() {
         ui->checkBox_snapper_cleanup->hide();
         ui->checkBox_snapper_timeline->hide();
         ui->tabWidget->setTabVisible(ui->tabWidget->indexOf(ui->tab_snapper_general), false);
+        ui->tabWidget->setTabVisible(ui->tabWidget->indexOf(ui->tab_snapper_settings), false);
     }
 
     refreshInterface();
