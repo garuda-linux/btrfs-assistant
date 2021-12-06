@@ -45,7 +45,7 @@ bool BtrfsAssistant::setup() {
     if (qEnvironmentVariableIsSet("SNAPSHOT_BOOT") && !restoreSnapshot)
         return false;
     if (runCmd("id -u", false).output != "0") {
-        execlp("pkexec", "pkexec", "btrfs-assistant", "-style", "kvantum", NULL);
+        execlp("pkexec", "pkexec", "btrfs-assistant", NULL);
         QApplication::exit(1);
         return false;
     }
