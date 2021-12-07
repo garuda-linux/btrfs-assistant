@@ -109,7 +109,7 @@ class BtrfsAssistant : public QMainWindow {
     QString version;
     QString output;
 
-    bool setup();
+    bool setup(bool skip_snapshot_prompt);
 
   private slots:
     void on_pushButton_balance_clicked();
@@ -117,17 +117,15 @@ class BtrfsAssistant : public QMainWindow {
     void on_pushButton_load_clicked();
     void on_pushButton_loadsubvol_clicked();
     void on_pushButton_deletesubvol_clicked();
-    void on_comboBox_btrfsdevice_activated();
+    void on_comboBox_btrfsdevice_activated(int);
     void on_checkBox_includesnapshots_clicked();
-    void on_checkBox_show_subvolume_clicked(bool checked);
-    void on_comboBox_snapper_configs_activated();
+    void on_comboBox_snapper_configs_activated(int);
     void on_pushButton_snapper_create_clicked();
     void on_pushButton_snapper_delete_clicked();
-    void on_comboBox_snapper_config_settings_activated();
+    void on_comboBox_snapper_config_settings_activated(int);
     void on_pushButton_snapper_save_config_clicked();
     void on_pushButton_snapper_new_config_clicked();
     void on_pushButton_snapper_delete_config_clicked();
-    void on_checkBox_snapper_advanced_clicked(bool checked);
     void on_pushButton_restore_snapshot_clicked();
     void on_checkBox_snapper_restore_clicked(bool checked);
     void on_checkBox_snapper_enabletimeline_clicked(bool checked);

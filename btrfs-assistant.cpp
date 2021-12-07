@@ -37,17 +37,36 @@ Result BtrfsAssistant::runCmd(QStringList cmdList, bool includeStderr, int timeo
 }
 
 // setup various items first time program runs
-bool BtrfsAssistant::setup() {
+bool BtrfsAssistant::setup(bool skip_snapshot_prompt) {
     this->setWindowTitle(tr("BTRFS Assistant"));
 
-    bool restoreSnapshot = handleSnapshotBoot(true, false);
+    bool restoreSnapshot;
 
-    if (qEnvironmentVariableIsSet("SNAPSHOT_BOOT") && !restoreSnapshot)
-        return false;
+    // We should ask if we should restore BEFORE we ask for root permissions for UX reasons
+    if (qEnvironmentVariableIsSet("SNAPSHOT_BOOT")) {
+        restoreSnapshot = handleSnapshotBoot(true, false);
+        if (!restoreSnapshot)
+            return false;
+    }
+
     if (runCmd("id -u", false).output != "0") {
-        execlp("pkexec", "pkexec", "btrfs-assistant", NULL);
+        auto args = QCoreApplication::arguments();
+        QString cmd = "pkexec btrfs-assistant";
+        cmd += " --xdg-desktop \"" + qEnvironmentVariable("XDG_CURRENT_DESKTOP", "") + "\"";
+        if (qEnvironmentVariableIsSet("SNAPSHOT_BOOT"))
+            cmd += " --skip-snapshot-prompt";
+
+        for (const QString &arg : args)
+            cmd += " " + arg;
+        cmd += "; true";
+        execlp("sh", "sh", "-c", cmd.toUtf8().constData(), NULL);
         QApplication::exit(1);
         return false;
+    }
+
+    // If the app was not started by the snapshost detecting desktop file, we can check if we are booted off a snapshot after we acquired root
+    if (!qEnvironmentVariableIsSet("SNAPSHOT_BOOT")) {
+        restoreSnapshot = handleSnapshotBoot(true, false);
     }
 
     // Save the state of snapper being installed since we have to check it so often
@@ -409,7 +428,7 @@ QString BtrfsAssistant::mountRoot(QString uuid) {
 
     return mountpoint;
 }
-void BtrfsAssistant::on_comboBox_btrfsdevice_activated() {
+void BtrfsAssistant::on_comboBox_btrfsdevice_activated(int) {
     QString device = ui->comboBox_btrfsdevice->currentText();
     if (!device.isEmpty() && fsMap[device].totalSize != 0) {
         populateBtrfsUi(device);
@@ -423,10 +442,6 @@ void BtrfsAssistant::on_pushButton_balance_clicked() {
     QMessageBox::information(0, tr("BTRFS Balance"),
                              tr("The balance operation is running in the background") + "\n\n" +
                                  tr("Use 'systemctl status btrfs-balance.service' to check the status"));
-}
-
-void BtrfsAssistant::on_checkBox_show_subvolume_clicked(bool checked) {
-    ui->tabWidget->setTabVisible(ui->tabWidget->indexOf(ui->tab_subvolumes), checked);
 }
 
 bool BtrfsAssistant::isTimeshift(QString subvolume) { return subvolume.contains("timeshift-btrfs"); }
@@ -719,7 +734,7 @@ void BtrfsAssistant::populateSnapperGrid() {
 }
 
 // Repopulate the grid when a different config is selected
-void BtrfsAssistant::on_comboBox_snapper_configs_activated() {
+void BtrfsAssistant::on_comboBox_snapper_configs_activated(int) {
     populateSnapperGrid();
     ui->comboBox_snapper_configs->clearFocus();
 }
@@ -844,7 +859,7 @@ void BtrfsAssistant::snapperTimelineEnable(bool enable) {
 void BtrfsAssistant::on_checkBox_snapper_enabletimeline_clicked(bool checked) { snapperTimelineEnable(checked); }
 
 // When a new config selected repopulate the UI
-void BtrfsAssistant::on_comboBox_snapper_config_settings_activated() {
+void BtrfsAssistant::on_comboBox_snapper_config_settings_activated(int) {
     populateSnapperConfigSettings();
 
     ui->comboBox_snapper_config_settings->clearFocus();
@@ -980,11 +995,6 @@ void BtrfsAssistant::on_pushButton_snapper_delete_config_clicked() {
     populateSnapperConfigSettings();
 
     ui->pushButton_snapper_delete_config->clearFocus();
-}
-
-// Show the snapper settings tab when the checkbox is checked
-void BtrfsAssistant::on_checkBox_snapper_advanced_clicked(bool checked) {
-    ui->tabWidget->setTabVisible(ui->tabWidget->indexOf(ui->tab_snapper_settings), checked);
 }
 
 void BtrfsAssistant::on_checkBox_snapper_restore_clicked(bool checked) {
