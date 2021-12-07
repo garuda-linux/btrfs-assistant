@@ -45,7 +45,10 @@ bool BtrfsAssistant::setup() {
     if (qEnvironmentVariableIsSet("SNAPSHOT_BOOT") && !restoreSnapshot)
         return false;
     if (runCmd("id -u", false).output != "0") {
-        execlp("pkexec", "pkexec", "btrfs-assistant", NULL);
+        QString cmd = "pkexec btrfs-assistant --xdg-desktop=\"";
+        cmd += qEnvironmentVariable("XDG_CURRENT_DESKTOP", "");
+        cmd += "\"";
+        execlp("sh", "sh", "-c", cmd.toUtf8().constData(), NULL);
         QApplication::exit(1);
         return false;
     }
