@@ -21,6 +21,7 @@ class BtrfsAssistant;
 }
 QT_END_NAMESPACE
 
+
 struct Result {
     int exitCode;
     QString output;
@@ -109,7 +110,7 @@ class BtrfsAssistant : public QMainWindow {
     QString version;
     QString output;
 
-    bool setup(bool skip_snapshot_prompt);
+    bool setup(bool skip_snapshot_prompt, bool snapshot_boot);
 
   private slots:
     void on_pushButton_balance_clicked();

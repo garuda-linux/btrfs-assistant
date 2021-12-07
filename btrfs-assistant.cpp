@@ -37,13 +37,13 @@ Result BtrfsAssistant::runCmd(QStringList cmdList, bool includeStderr, int timeo
 }
 
 // setup various items first time program runs
-bool BtrfsAssistant::setup(bool skip_snapshot_prompt) {
+bool BtrfsAssistant::setup(bool skip_snapshot_prompt, bool snapshot_boot) {
     this->setWindowTitle(tr("BTRFS Assistant"));
 
-    bool restoreSnapshot;
+    bool restoreSnapshot = false;
 
     // We should ask if we should restore BEFORE we ask for root permissions for UX reasons
-    if (qEnvironmentVariableIsSet("SNAPSHOT_BOOT")) {
+    if (snapshot_boot && !skip_snapshot_prompt) {
         restoreSnapshot = handleSnapshotBoot(true, false);
         if (!restoreSnapshot)
             return false;
@@ -53,7 +53,7 @@ bool BtrfsAssistant::setup(bool skip_snapshot_prompt) {
         auto args = QCoreApplication::arguments();
         QString cmd = "pkexec btrfs-assistant";
         cmd += " --xdg-desktop \"" + qEnvironmentVariable("XDG_CURRENT_DESKTOP", "") + "\"";
-        if (qEnvironmentVariableIsSet("SNAPSHOT_BOOT"))
+        if (snapshot_boot)
             cmd += " --skip-snapshot-prompt";
 
         for (const QString &arg : args)
@@ -65,7 +65,7 @@ bool BtrfsAssistant::setup(bool skip_snapshot_prompt) {
     }
 
     // If the app was not started by the snapshost detecting desktop file, we can check if we are booted off a snapshot after we acquired root
-    if (!qEnvironmentVariableIsSet("SNAPSHOT_BOOT")) {
+    if (!snapshot_boot) {
         restoreSnapshot = handleSnapshotBoot(true, false);
     }
 
@@ -94,8 +94,8 @@ bool BtrfsAssistant::setup(bool skip_snapshot_prompt) {
     populateSnapperConfigSettings();
     ui->pushButton_restore_snapshot->setEnabled(false);
 
-    if (isSnapBoot)
-        handleSnapshotBoot(false, restoreSnapshot);
+    if (isSnapBoot || skip_snapshot_prompt)
+        handleSnapshotBoot(false, restoreSnapshot || snapshot_boot);
     return true;
 }
 
@@ -1082,7 +1082,7 @@ bool BtrfsAssistant::handleSnapshotBoot(bool checkOnly, bool restore) {
     } else if (restore)
         restoreSnapshot(uuid, subvol);
 
-    // No matter if we restored a snapshot a not, show the subvolume tab and switch to it
+    // No matter if we restored a snapshot a not, show the snapper tab and switch to it
     ui->tabWidget->setTabVisible(ui->tabWidget->indexOf(ui->tab_snapper_general), true);
     ui->tabWidget->setCurrentIndex(ui->tabWidget->indexOf(ui->tab_snapper_general));
     ui->checkBox_snapper_restore->setChecked(true);

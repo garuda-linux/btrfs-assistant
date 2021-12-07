@@ -1,6 +1,6 @@
 #!/usr/bin/env xdg-open
 [Desktop Entry]
-Exec=bash -c "[ ! -z $(findmnt / -no options | grep -E '.snapshots') ] && SNAPSHOT_BOOT=1 btrfs-assistant"
+Exec=bash -c "[ ! -z $(findmnt / -no options | grep -E '.snapshots') ] && btrfs-assistant --snapshot-boot"
 Icon=timeshift
 Name=BTRFS Assistant Snapper check
 Type=Application
