@@ -8,6 +8,7 @@
 #include <QMessageBox>
 #include <QProcess>
 #include <QSet>
+#include <QSettings>
 #include <QSignalMapper>
 #include <QThread>
 #include <QTime>
@@ -20,7 +21,6 @@ namespace Ui {
 class BtrfsAssistant;
 }
 QT_END_NAMESPACE
-
 
 struct Result {
     int exitCode;
@@ -64,42 +64,39 @@ class BtrfsAssistant : public QMainWindow {
     QHash<QString, QCheckBox *> configCheckBoxes;
     QMap<QString, Btrfs> fsMap;
 
+    QStringList bmFreqValues = {"none", "daily", "weekly", "monthly"};
+
     QSet<QCheckBox *> changedCheckBoxes;
     QMap<QString, QString> snapperConfigs;
     QMap<QString, QVector<SnapperSnapshots>> snapperSnapshots;
     QMap<QString, QVector<SnapperSubvolume>> snapperSubvolumes;
     bool hasSnapper = false;
+    bool hasBtrfsmaintenance = false;
     bool isSnapBoot = false;
+    QSettings *settings;
+    QSettings *bmSettings;
+    QString btrfsmaintenanceConfig;
+    QSettings::Format bmFormat;
 
     void refreshInterface();
-    void displayError(QString errorText);
     void loadEnabledUnits();
     void setupConfigBoxes();
     void apply();
-    Result runCmd(QString cmd, bool includeStderr, int timeout = 60) const;
-    Result runCmd(QStringList cmdList, bool includeStderr, int timeout = 60) const;
-    QStringList getBTRFSFilesystems();
-    QString findMountpoint(QString uuid);
-    QString findRootSubvol() const;
-    QStringList findBtrfsChildren(const QString subvolid, const QString uuid) const;
     void loadBTRFS();
-    void populateBtrfsUi(QString uuid);
-    QString toHumanReadable(double number);
-    void populateSubvolList(QString uuid);
-    void reloadSubvolList(QString uuid);
+    void populateBtrfsUi(const QString &uuid);
+    void populateSubvolList(const QString &uuid);
+    void reloadSubvolList(const QString &uuid);
     void loadSnapper();
     void populateSnapperGrid();
     void populateSnapperConfigSettings();
-    void restoreSnapshot(QString uuid, QString subvolume);
-    bool isSnapper(QString subvolume);
-    bool isTimeshift(QString subvolume);
-    bool isMounted(QString uuid, QString subvolid);
-    QString mountRoot(QString uuid);
-    bool handleSnapshotBoot(bool checkOnly, bool restore);
+    void restoreSnapshot(const QString &uuid, QString subvolume);
+    void switchToSnapperRestore();
+    QMap<QString, QString> getSnapshotBoot();
     void enableRestoreMode(bool enable);
     void loadSnapperRestoreMode();
-    SnapperSnapshots getSnapperMeta(QString filename);
     void snapperTimelineEnable(bool enable);
+    void populateBmTab();
+    void updateServices(QList<QCheckBox *>);
 
   public:
     explicit BtrfsAssistant(QWidget *parent = 0);
@@ -110,26 +107,29 @@ class BtrfsAssistant : public QMainWindow {
     QString version;
     QString output;
 
-    bool setup(bool skip_snapshot_prompt, bool snapshot_boot);
+    bool setup(bool skipSnapshotPrompt);
 
   private slots:
-    void on_pushButton_balance_clicked();
-    void on_pushButton_applybtrfs_clicked();
+    void on_checkBox_bmBalance_clicked(bool checked);
+    void on_checkBox_bmDefrag_clicked(bool checked);
+    void on_checkBox_bmScrub_clicked(bool checked);
+    void on_checkBox_includesnapshots_clicked();
+    void on_checkBox_snapper_enabletimeline_clicked(bool checked);
+    void on_checkBox_snapper_restore_clicked(bool checked);
+    void on_comboBox_btrfsdevice_activated(int);
+    void on_comboBox_snapper_configs_activated(int);
+    void on_comboBox_snapper_config_settings_activated(int);
+    void on_pushButton_bmApply_clicked();
+    void on_pushButton_deletesubvol_clicked();
     void on_pushButton_load_clicked();
     void on_pushButton_loadsubvol_clicked();
-    void on_pushButton_deletesubvol_clicked();
-    void on_comboBox_btrfsdevice_activated(int);
-    void on_checkBox_includesnapshots_clicked();
-    void on_comboBox_snapper_configs_activated(int);
+    void on_pushButton_restore_snapshot_clicked();
     void on_pushButton_snapper_create_clicked();
     void on_pushButton_snapper_delete_clicked();
-    void on_comboBox_snapper_config_settings_activated(int);
-    void on_pushButton_snapper_save_config_clicked();
-    void on_pushButton_snapper_new_config_clicked();
     void on_pushButton_snapper_delete_config_clicked();
-    void on_pushButton_restore_snapshot_clicked();
-    void on_checkBox_snapper_restore_clicked(bool checked);
-    void on_checkBox_snapper_enabletimeline_clicked(bool checked);
+    void on_pushButton_snapper_new_config_clicked();
+    void on_pushButton_snapper_save_config_clicked();
+    void on_pushButton_SnapperUnitsApply_clicked();
 
   private:
     Ui::BtrfsAssistant *ui;
