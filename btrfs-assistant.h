@@ -107,7 +107,7 @@ class BtrfsAssistant : public QMainWindow {
     QString version;
     QString output;
 
-    bool setup(bool skipSnapshotPrompt);
+    bool setup(bool skipSnapshotPrompt, bool snapshotBoot);
 
   private slots:
     void on_checkBox_bmBalance_clicked(bool checked);

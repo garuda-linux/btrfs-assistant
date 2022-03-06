@@ -277,7 +277,7 @@ BtrfsAssistant::BtrfsAssistant(QWidget *parent) : QMainWindow(parent), ui(new Ui
 BtrfsAssistant::~BtrfsAssistant() { delete ui; }
 
 // setup various items first time program runs
-bool BtrfsAssistant::setup(bool skipSnapshotPrompt) {
+bool BtrfsAssistant::setup(bool skipSnapshotPrompt, bool snapshotBoot) {
     settings = new QSettings("/etc/btrfs-assistant.conf", QSettings::NativeFormat);
 
     bool restoreSnapshotSelected = false;
@@ -286,6 +286,8 @@ bool BtrfsAssistant::setup(bool skipSnapshotPrompt) {
     auto sbResult = getSnapshotBoot();
     if (isSnapBoot && !skipSnapshotPrompt && sbResult.contains("uuid") && sbResult.contains("subvol")) {
         restoreSnapshotSelected = askSnapshotBoot(sbResult.value("subvol"));
+        if (!restoreSnapshotSelected && snapshotBoot)
+            return false;
     }
 
     // If the application wasn't luanched with root access, relaunch it
@@ -338,8 +340,9 @@ bool BtrfsAssistant::setup(bool skipSnapshotPrompt) {
         ui->tabWidget->setTabVisible(ui->tabWidget->indexOf(ui->tab_btrfsmaintenance), false);
     }
 
-    if ((restoreSnapshotSelected || skipSnapshotPrompt) && sbResult.contains("uuid") && sbResult.contains("subvol")) {
+    if (isSnapBoot)
         switchToSnapperRestore();
+    if ((restoreSnapshotSelected || skipSnapshotPrompt) && sbResult.contains("uuid") && sbResult.contains("subvol")) {
         restoreSnapshot(sbResult.value("uuid"), sbResult.value("subvol"));
     }
 
@@ -1267,23 +1270,14 @@ void BtrfsAssistant::on_pushButton_restore_snapshot_clicked() {
 QMap<QString, QString> BtrfsAssistant::getSnapshotBoot() {
     isSnapBoot = false;
 
-    QString output = runCmd("LANG=C findmnt -no uuid,options /", false).output;
-    if (output.isEmpty())
+    QFile inputFile("/proc/cmdline");
+    if (!inputFile.open(QIODevice::ReadOnly))
         return QMap<QString, QString>();
-
-    QString uuid = output.split(' ').at(0).trimmed();
-    QString options = output.right(output.length() - uuid.length()).trimmed();
-    if (options.isEmpty() || uuid.isEmpty())
-        return QMap<QString, QString>();
-
-    QString subvol;
-    QStringList optionsList = options.split(',');
-    for (const QString &option : optionsList) {
-        if (option.startsWith("subvol="))
-            subvol = option.split("subvol=").at(1);
-    }
-
-    if (subvol.isEmpty() || !subvol.contains(".snapshots"))
+    QTextStream in(&inputFile);
+    QString cmdline = in.readAll();
+    QString uuid = QRegularExpression("(?<=root=UUID=)([\\S]*)").match(cmdline).captured(0);
+    QString subvol = QRegularExpression("rootflags=.*subvol=([^,|\\s]*)").match(cmdline).captured(1);
+    if (uuid.isNull() || subvol.isNull() || !subvol.contains(".snapshots"))
         return QMap<QString, QString>();
 
     // If we get to here we should be booted off the snapshot stored in subvol

@@ -1,6 +1,6 @@
 #!/usr/bin/env xdg-open
 [Desktop Entry]
-Exec=bash -c "[ ! -z $(findmnt / -no options | grep -E '.snapshots') ] && btrfs-assistant"
+Exec=bash -c "grep -q .snapshots /proc/cmdline && btrfs-assistant"
 Icon=timeshift
 Name=BTRFS Assistant Snapper check
 Type=Application
