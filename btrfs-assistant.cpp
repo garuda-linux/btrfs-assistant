@@ -277,25 +277,23 @@ BtrfsAssistant::BtrfsAssistant(QWidget *parent) : QMainWindow(parent), ui(new Ui
 BtrfsAssistant::~BtrfsAssistant() { delete ui; }
 
 // setup various items first time program runs
-bool BtrfsAssistant::setup(bool skipSnapshotPrompt, bool snapshotBoot) {
+bool BtrfsAssistant::setup(bool skipSnapshotPrompt, bool snapBootAutostart) {
     settings = new QSettings("/etc/btrfs-assistant.conf", QSettings::NativeFormat);
 
-    bool restoreSnapshotSelected = false;
-
-    // We should ask if we should restore before we ask for root permissions for usability reasons
+    bool restoreSnapshotSelected = skipSnapshotPrompt;
     auto sbResult = getSnapshotBoot();
-    if (isSnapBoot && !skipSnapshotPrompt && sbResult.contains("uuid") && sbResult.contains("subvol")) {
-        restoreSnapshotSelected = askSnapshotBoot(sbResult.value("subvol"));
-        if (!restoreSnapshotSelected && snapshotBoot)
-            return false;
-    }
 
     // If the application wasn't luanched with root access, relaunch it
     if (runCmd("id -u", false).output != "0") {
+        // If the application is autostarted because of a snapshot boot has been detected,
+        // we should ask the user if they want to restore the snapshot or not *before* we ask for root
+        if (isSnapBoot && snapBootAutostart && !(restoreSnapshotSelected = askSnapshotBoot(sbResult.value("subvol"))))
+            return false;
+
         auto args = QCoreApplication::arguments();
         QString cmd = "pkexec btrfs-assistant";
         cmd += " --xdg-desktop \"" + qEnvironmentVariable("XDG_CURRENT_DESKTOP", "") + "\"";
-        if (isSnapBoot)
+        if (restoreSnapshotSelected)
             cmd += " --skip-snapshot-prompt";
 
         for (const QString &arg : args)
@@ -305,6 +303,9 @@ bool BtrfsAssistant::setup(bool skipSnapshotPrompt, bool snapshotBoot) {
         QApplication::exit(1);
         return false;
     }
+
+    if (isSnapBoot && !skipSnapshotPrompt)
+        restoreSnapshotSelected = askSnapshotBoot(sbResult.value("subvol"));
 
     // Save the state of snapper and btrfsmaintenance being installed since we have to check them so often
     QString snapperPath = settings->value("snapper", "/usr/bin/snapper").toString();
@@ -340,10 +341,10 @@ bool BtrfsAssistant::setup(bool skipSnapshotPrompt, bool snapshotBoot) {
         ui->tabWidget->setTabVisible(ui->tabWidget->indexOf(ui->tab_btrfsmaintenance), false);
     }
 
-    if (isSnapBoot)
+    if (isSnapBoot) {
         switchToSnapperRestore();
-    if ((restoreSnapshotSelected || skipSnapshotPrompt) && sbResult.contains("uuid") && sbResult.contains("subvol")) {
-        restoreSnapshot(sbResult.value("uuid"), sbResult.value("subvol"));
+        if (restoreSnapshotSelected)
+            restoreSnapshot(sbResult.value("uuid"), sbResult.value("subvol"));
     }
 
     return true;

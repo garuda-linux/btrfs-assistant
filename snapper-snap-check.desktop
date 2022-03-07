@@ -1,6 +1,6 @@
 #!/usr/bin/env xdg-open
 [Desktop Entry]
-Exec=bash -c "grep -q .snapshots /proc/cmdline && btrfs-assistant --snapshot-boot"
+Exec=bash -c "grep -q .snapshots /proc/cmdline && btrfs-assistant --snap-boot-autostart"
 Icon=timeshift
 Name=BTRFS Assistant Snapper check
 Type=Application

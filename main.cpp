@@ -20,10 +20,10 @@ int main(int argc, char *argv[]) {
     QCommandLineParser cmdline;
     QCommandLineOption xdgDesktop("xdg-desktop", "Set XDG_CURRENT_DESKTOP via params", "desktop");
     QCommandLineOption skipSnapshotPrompt("skip-snapshot-prompt", "Assume yes for the initial snapshot restore prompt");
-    QCommandLineOption snapshotBoot("snapshot-boot");
+    QCommandLineOption snapBootAutostart("snap-boot-autostart");
     cmdline.addOption(xdgDesktop);
     cmdline.addOption(skipSnapshotPrompt);
-    cmdline.addOption(snapshotBoot);
+    cmdline.addOption(snapBootAutostart);
     cmdline.process(parseArgs(argc, argv));
     if (cmdline.isSet(xdgDesktop))
         qputenv("XDG_CURRENT_DESKTOP", cmdline.value(xdgDesktop).toUtf8());
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
     a.installTranslator(&myappTranslator);
 
     BtrfsAssistant w;
-    if (!w.setup(cmdline.isSet(skipSnapshotPrompt), cmdline.isSet(snapshotBoot)))
+    if (!w.setup(cmdline.isSet(skipSnapshotPrompt), cmdline.isSet(snapBootAutostart)))
         return 0;
     w.show();
     return a.exec();
