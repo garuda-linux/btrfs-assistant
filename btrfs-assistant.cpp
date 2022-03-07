@@ -287,7 +287,7 @@ bool BtrfsAssistant::setup(bool skipSnapshotPrompt, bool snapBootAutostart) {
     if (runCmd("id -u", false).output != "0") {
         // If the application is autostarted because of a snapshot boot has been detected,
         // we should ask the user if they want to restore the snapshot or not *before* we ask for root
-        if (isSnapBoot && snapBootAutostart && !(restoreSnapshotSelected = askSnapshotBoot(sbResult.value("subvol"))))
+        if (snapBootAutostart && (!isSnapBoot || !(restoreSnapshotSelected = askSnapshotBoot(sbResult.value("subvol")))))
             return false;
 
         auto args = QCoreApplication::arguments();
